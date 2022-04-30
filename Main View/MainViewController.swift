@@ -10,9 +10,11 @@ class MainViewController: UIViewController, PHPickerViewControllerDelegate {
 
     let imageView = UIImageView()
     
-    let label = UILabel()
+    var label = UILabel()
     
     let button = UIButton()
+    
+    
 
 
     var photoPicker: PHPickerViewController {
@@ -30,8 +32,8 @@ class MainViewController: UIViewController, PHPickerViewControllerDelegate {
         super.viewDidLoad()
         
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.setTitle("Upload Photo", for: .normal)
-        button.backgroundColor = .black
+        button.setTitle("Pick a Railroad_Boxcar", for: .normal)
+        button.backgroundColor = .blue
         button.titleLabel?.font = .systemFont(ofSize: 30)
         view.addSubview(imageView)
         imageView.translatesAutoresizingMaskIntoConstraints = false
