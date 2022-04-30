@@ -1,71 +1,108 @@
-/*
-See LICENSE folder for this sample’s licensing information.
 
-Abstract:
-The view controller that selects an image and makes a prediction using Vision and Core ML.
-*/
 
 import UIKit
+import PhotosUI
 
-class MainViewController: UIViewController {
+class MainViewController: UIViewController, PHPickerViewControllerDelegate {
     var firstRun = true
 
-    /// A predictor instance that uses Vision and Core ML to generate prediction strings from a photo.
     let imagePredictor = ImagePredictor()
 
-    /// The largest number of predictions the main view controller displays the user.
-    let predictionsToShow = 2
+    let imageView = UIImageView()
+    
+    let label = UILabel()
+    
+    let button = UIButton()
 
-    // MARK: Main storyboard outlets
-    @IBOutlet weak var startupPrompts: UIStackView!
-    @IBOutlet weak var imageView: UIImageView!
-    @IBOutlet weak var predictionLabel: UILabel!
-}
 
-extension MainViewController {
-    // MARK: Main storyboard actions
-    /// The method the storyboard calls when the user one-finger taps the screen.
-    @IBAction func singleTap() {
-        // Show options for the source picker only if the camera is available.
-        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
-            present(photoPicker, animated: false)
+    var photoPicker: PHPickerViewController {
+        var config = PHPickerConfiguration()
+        config.selectionLimit = 1
+        config.filter = PHPickerFilter.images
+
+        let photoPicker = PHPickerViewController(configuration: config)
+        photoPicker.delegate = self
+
+        return photoPicker
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.setTitle("Upload Photo", for: .normal)
+        button.backgroundColor = .black
+        button.titleLabel?.font = .systemFont(ofSize: 30)
+        view.addSubview(imageView)
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
+        imageView.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
+        imageView.leadingAnchor.constraint(equalTo: view.leadingAnchor).isActive = true
+        imageView.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
+        imageView.heightAnchor.constraint(equalToConstant: 300).isActive = true
+        view.addSubview(button)
+        button.centerYAnchor.constraint(equalTo: imageView.centerYAnchor, constant: 300).isActive = true
+        button.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
+        button.addTarget(self, action: #selector(buttonTapped), for: .touchUpInside)
+        view.addSubview(label)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: 50).isActive = true
+        label.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
+        
+        
+    }
+    
+    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        picker.dismiss(animated: false)
+
+        guard let result = results.first else {
             return
         }
 
-        present(cameraPicker, animated: false)
-    }
+        result.itemProvider.loadObject(ofClass: UIImage.self) { object, error in
+            if let error = error {
+                print("Photo picker error: \(error)")
+                return
+            }
 
-    /// The method the storyboard calls when the user two-finger taps the screen.
-    @IBAction func doubleTap() {
-        present(photoPicker, animated: false)
+            guard let photo = object as? UIImage else {
+                fatalError("The Photo Picker's image isn't a/n \(UIImage.self) instance.")
+            }
+
+            self.userSelectedPhoto(photo)
+        }
     }
 }
 
 extension MainViewController {
-    // MARK: Main storyboard updates
-    /// Updates the storyboard's image view.
-    /// - Parameter image: An image.
+    
+    @objc func buttonTapped() {
+        present(photoPicker, animated: true)
+    }
+}
+
+extension MainViewController {
+    
     func updateImage(_ image: UIImage) {
         DispatchQueue.main.async {
             self.imageView.image = image
         }
     }
 
-    /// Updates the storyboard's prediction label.
-    /// - Parameter message: A prediction or message string.
-    /// - Tag: updatePredictionLabel
+    ///
     func updatePredictionLabel(_ message: String) {
         DispatchQueue.main.async {
-            self.predictionLabel.text = message
+            self.label.backgroundColor = .white
+            self.label.text = message
         }
 
-        if firstRun {
-            DispatchQueue.main.async {
-                self.firstRun = false
-                self.predictionLabel.superview?.isHidden = false
-                self.startupPrompts.isHidden = true
-            }
-        }
+//        if firstRun {
+//            DispatchQueue.main.async {
+//                self.firstRun = false
+//                self.predictionLabel.superview?.isHidden = false
+//                self.startupPrompts.isHidden = true
+//            }
+//        }
     }
     /// Notifies the view controller when a user selects a photo in the camera picker or photo library picker.
     /// - Parameter photo: A photo from the camera or photo library.
@@ -113,7 +150,7 @@ extension MainViewController {
     /// - Tag: formatPredictions
     private func formatPredictions(_ predictions: [ImagePredictor.Prediction]) -> [String] {
         // Vision sorts the classifications in descending confidence order.
-        let topPredictions: [String] = predictions.prefix(predictionsToShow).map { prediction in
+        let topPredictions: [String] = predictions.prefix(2).map { prediction in
             var name = prediction.classification
 
             // For classifications with more than one name, keep the one before the first comma.
